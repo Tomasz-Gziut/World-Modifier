@@ -1,14 +1,17 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "com.biomewhitelist.mixin",
+  "package": "com.worldmodifier.mixin",
   "compatibilityLevel": "JAVA_17",
-  "refmap": "biomewhitelist.refmap.json",
+  "refmap": "worldmodifier.refmap.json",
   "mixins": [
     "MultiNoiseBiomeSourceMixin",
     "TheEndBiomeSourceMixin",
     "SeaLevelMixin",
-    "AquiferMixin"
+    "AquiferMixin",
+    "BedrockMixin",
+    "NoiseGeneratorSettingsMixin",
+    "DimensionTypeMixin"
   ],
   "client": [],
   "injectors": {

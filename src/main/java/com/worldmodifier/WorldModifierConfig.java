@@ -1,4 +1,4 @@
-package com.biomewhitelist;
+package com.worldmodifier;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.common.ForgeConfigSpec;
@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Configuration for biome whitelist.
+ * Configuration for World Modifier.
  *
  * Contract:
  * - whitelistedBiomes: List of biome resource locations (e.g., "minecraft:plains")
@@ -19,12 +19,13 @@ import java.util.Set;
  *
  * Invariant: If whitelist is empty and enabled=true, ALL biomes are allowed (no filtering).
  */
-public class BiomeWhitelistConfig {
+public class WorldModifierConfig {
     public static final ForgeConfigSpec SPEC;
 
     public static final ForgeConfigSpec.BooleanValue ENABLED;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> WHITELISTED_BIOMES;
     public static final ForgeConfigSpec.IntValue SEA_LEVEL;
+    public static final ForgeConfigSpec.IntValue BEDROCK_LEVEL;
 
     // Cached set for fast lookup - rebuilt when config reloads
     private static Set<ResourceLocation> whitelistCache = Collections.emptySet();
@@ -33,7 +34,7 @@ public class BiomeWhitelistConfig {
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
 
-        builder.comment("Biome Whitelist Configuration");
+        builder.comment("World Modifier Configuration");
         builder.push("general");
 
         ENABLED = builder
@@ -85,6 +86,16 @@ public class BiomeWhitelistConfig {
                 )
                 .defineInRange("seaLevel", 100, 0, 320);
 
+        BEDROCK_LEVEL = builder
+                .comment(
+                        "Y level where bedrock generates (bottom of the world).",
+                        "Default Minecraft bedrock level is -64.",
+                        "Higher values = shallower world, lower values = deeper world.",
+                        "Bedrock will generate at this Y level and below.",
+                        "Range: -64 to 320"
+                )
+                .defineInRange("bedrockLevel", 0, -64, 320);
+
         builder.pop();
         SPEC = builder.build();
     }
@@ -102,13 +113,14 @@ public class BiomeWhitelistConfig {
                 newCache.add(loc);
                 newList.add(loc);
             } else {
-                BiomeWhitelist.LOGGER.warn("[BiomeWhitelistConfig.rebuildCache]: Invalid biome resource location: {}", biome);
+                WorldModifier.LOGGER.warn("[WorldModifierConfig.rebuildCache]: Invalid biome resource location: {}", biome);
             }
         }
         whitelistCache = Collections.unmodifiableSet(newCache);
         whitelistList = Collections.unmodifiableList(newList);
-        BiomeWhitelist.LOGGER.info("[BiomeWhitelistConfig.rebuildCache]: Whitelist contains {} biomes, sea level: {}",
-                whitelistCache.size(), SEA_LEVEL.get());
+
+        WorldModifier.LOGGER.info("[WorldModifierConfig.rebuildCache]: Whitelist contains {} biomes, sea level: {}, bedrock level: {}",
+                whitelistCache.size(), SEA_LEVEL.get(), BEDROCK_LEVEL.get());
     }
 
     /**
@@ -154,5 +166,12 @@ public class BiomeWhitelistConfig {
      */
     public static int getSeaLevel() {
         return SEA_LEVEL.get();
+    }
+
+    /**
+     * @return the configured bedrock level
+     */
+    public static int getBedrockLevel() {
+        return BEDROCK_LEVEL.get();
     }
 }

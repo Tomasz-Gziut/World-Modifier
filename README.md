@@ -1,12 +1,12 @@
-# Biome Whitelist Mod
+# World Modifier Mod
 
-A Minecraft Forge mod for 1.20.1 that restricts world generation to only specified biomes. Perfect for creating themed worlds, custom modpacks, or specialized server experiences.
+A Minecraft Forge mod for 1.20.1 that allows you to customize world generation settings. Control which biomes generate, adjust sea level, and create unique world configurations.
 
 ## Features
 
 - **Biome Filtering**: Only allow specific biomes to generate in your world
 - **Smart Replacement**: Non-whitelisted biomes are replaced with biomes from your whitelist, maintaining natural-sized regions
-- **Ocean Flattening**: Ocean biomes generate as proper flat oceans without islands poking through
+- **Custom Sea Level**: Adjust the world's sea level to create flooded or drained worlds
 - **Hot Reload**: Configuration changes take effect without restarting the game
 - **Mod Support**: Works with modded biomes using their full resource locations
 
@@ -26,22 +26,26 @@ A Minecraft Forge mod for 1.20.1 that restricts world generation to only specifi
 
 After first launch, a configuration file will be created at:
 ```
-config/biomewhitelist-common.toml
+config/worldmodifier-common.toml
 ```
 
 ### Configuration Options
 
 #### `enabled` (default: `true`)
-Master toggle for the mod. Set to `false` to disable biome filtering entirely.
+Master toggle for the mod. Set to `false` to disable all modifications.
 
-#### `whitelistedBiomes` (default: `["minecraft:plains"]`)
+#### `whitelistedBiomes` (default: ocean biomes)
 List of biomes that are allowed to generate. Use full resource locations.
 
 **Important**: If this list is empty, all biomes are allowed (whitelist is disabled).
 
 When a non-whitelisted biome would generate, it is replaced with a biome from your whitelist. The replacement is consistent based on location, so biome regions maintain natural sizes.
 
-**Ocean biomes** (any biome with "ocean" in the name) will generate as flat ocean floor with water, preventing islands from appearing.
+#### `seaLevel` (default: `100`)
+Custom sea level for world generation. Default Minecraft sea level is 63.
+
+#### `bedrockLevel` (default: `0`)
+Y level where bedrock generates (bottom of the world). Default Minecraft is -64.
 
 ## Example Configurations
 
@@ -50,6 +54,7 @@ When a non-whitelisted biome would generate, it is replaced with a biome from yo
 [general]
 enabled = true
 whitelistedBiomes = ["minecraft:plains", "minecraft:river", "minecraft:ocean"]
+seaLevel = 63
 ```
 
 ### Forest Survival

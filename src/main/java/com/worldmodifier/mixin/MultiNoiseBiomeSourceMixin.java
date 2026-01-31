@@ -1,7 +1,7 @@
-package com.biomewhitelist.mixin;
+package com.worldmodifier.mixin;
 
-import com.biomewhitelist.BiomeWhitelist;
-import com.biomewhitelist.BiomeWhitelistConfig;
+import com.worldmodifier.WorldModifier;
+import com.worldmodifier.WorldModifierConfig;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -32,21 +32,21 @@ import java.util.Set;
 public class MultiNoiseBiomeSourceMixin {
 
     @Unique
-    private Map<ResourceLocation, Holder<Biome>> biomewhitelist$biomeHolderCache = new HashMap<>();
+    private Map<ResourceLocation, Holder<Biome>> worldmodifier$biomeHolderCache = new HashMap<>();
 
     /**
      * Intercepts biome selection to filter based on whitelist.
      *
      * @param x Biome coordinate x (1/4 of block coordinate)
-     * @param y Biome coordinate y
+     * @param y Biome coordinate y (1/4 of block coordinate)
      * @param z Biome coordinate z (1/4 of block coordinate)
      * @param sampler Climate sampler for noise-based selection
      * @param cir Callback to potentially modify return value
      */
     @Inject(method = "getNoiseBiome", at = @At("RETURN"), cancellable = true)
-    private void biomewhitelist$filterBiome(int x, int y, int z, Climate.Sampler sampler,
+    private void worldmodifier$filterBiome(int x, int y, int z, Climate.Sampler sampler,
                                              CallbackInfoReturnable<Holder<Biome>> cir) {
-        if (!BiomeWhitelistConfig.isFilteringActive()) {
+        if (!WorldModifierConfig.isFilteringActive()) {
             return;
         }
 
@@ -62,7 +62,7 @@ public class MultiNoiseBiomeSourceMixin {
         }
 
         ResourceLocation biomeId = keyOpt.get().location();
-        Set<ResourceLocation> whitelist = BiomeWhitelistConfig.getWhitelistedBiomes();
+        Set<ResourceLocation> whitelist = WorldModifierConfig.getWhitelistedBiomes();
 
         // Check if biome is allowed
         if (whitelist.contains(biomeId)) {
@@ -70,7 +70,7 @@ public class MultiNoiseBiomeSourceMixin {
         }
 
         // Biome not in whitelist - use fallback biome
-        Holder<Biome> replacement = biomewhitelist$getFallbackBiome();
+        Holder<Biome> replacement = worldmodifier$getFallbackBiome();
         if (replacement != null) {
             cir.setReturnValue(replacement);
         }
@@ -81,12 +81,12 @@ public class MultiNoiseBiomeSourceMixin {
      * Uses caching to avoid repeated lookups.
      */
     @Unique
-    private Holder<Biome> biomewhitelist$getFallbackBiome() {
-        ResourceLocation fallbackBiome = BiomeWhitelistConfig.getFirstWhitelistedBiome();
+    private Holder<Biome> worldmodifier$getFallbackBiome() {
+        ResourceLocation fallbackBiome = WorldModifierConfig.getFirstWhitelistedBiome();
 
         // Check cache first
-        if (biomewhitelist$biomeHolderCache.containsKey(fallbackBiome)) {
-            return biomewhitelist$biomeHolderCache.get(fallbackBiome);
+        if (worldmodifier$biomeHolderCache.containsKey(fallbackBiome)) {
+            return worldmodifier$biomeHolderCache.get(fallbackBiome);
         }
 
         // Search through the biome source's possible biomes to find the biome holder
@@ -94,12 +94,12 @@ public class MultiNoiseBiomeSourceMixin {
         for (Holder<Biome> biomeHolder : self.possibleBiomes()) {
             Optional<ResourceKey<Biome>> keyOpt = biomeHolder.unwrapKey();
             if (keyOpt.isPresent() && keyOpt.get().location().equals(fallbackBiome)) {
-                biomewhitelist$biomeHolderCache.put(fallbackBiome, biomeHolder);
+                worldmodifier$biomeHolderCache.put(fallbackBiome, biomeHolder);
                 return biomeHolder;
             }
         }
 
-        BiomeWhitelist.LOGGER.warn("[MultiNoiseBiomeSourceMixin.getFallbackBiome]: Biome {} not found in biome source's possible biomes", fallbackBiome);
+        WorldModifier.LOGGER.warn("[MultiNoiseBiomeSourceMixin.getFallbackBiome]: Biome {} not found in biome source's possible biomes", fallbackBiome);
         return null;
     }
 }

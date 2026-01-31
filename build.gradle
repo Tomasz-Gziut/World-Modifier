@@ -7,8 +7,8 @@ plugins {
 }
 
 version = '1.0.0'
-group = 'com.biomewhitelist'
-archivesBaseName = 'biomewhitelist'
+group = 'com.worldmodifier'
+archivesBaseName = 'worldmodifier'
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
@@ -22,9 +22,9 @@ minecraft {
             workingDirectory project.file('run')
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
-            property 'forge.enabledGameTestNamespaces', 'biomewhitelist'
+            property 'forge.enabledGameTestNamespaces', 'worldmodifier'
             mods {
-                biomewhitelist {
+                worldmodifier {
                     source sourceSets.main
                 }
             }
@@ -34,9 +34,9 @@ minecraft {
             workingDirectory project.file('run')
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
-            property 'forge.enabledGameTestNamespaces', 'biomewhitelist'
+            property 'forge.enabledGameTestNamespaces', 'worldmodifier'
             mods {
-                biomewhitelist {
+                worldmodifier {
                     source sourceSets.main
                 }
             }
@@ -46,9 +46,9 @@ minecraft {
             workingDirectory project.file('run')
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
-            args '--mod', 'biomewhitelist', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+            args '--mod', 'worldmodifier', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
             mods {
-                biomewhitelist {
+                worldmodifier {
                     source sourceSets.main
                 }
             }
@@ -69,19 +69,19 @@ dependencies {
 }
 
 mixin {
-    add sourceSets.main, "biomewhitelist.refmap.json"
-    config "biomewhitelist.mixins.json"
+    add sourceSets.main, "worldmodifier.refmap.json"
+    config "worldmodifier.mixins.json"
 }
 
 jar {
     manifest {
         attributes([
-                "Specification-Title"     : "biomewhitelist",
-                "Specification-Vendor"    : "biomewhitelist",
+                "Specification-Title"     : "worldmodifier",
+                "Specification-Vendor"    : "worldmodifier",
                 "Specification-Version"   : "1",
                 "Implementation-Title"    : project.name,
                 "Implementation-Version"  : project.jar.archiveVersion,
-                "Implementation-Vendor"   : "biomewhitelist",
+                "Implementation-Vendor"   : "worldmodifier",
                 "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
         ])
     }

@@ -1,4 +1,4 @@
-package com.biomewhitelist;
+package com.worldmodifier;
 
 import com.mojang.logging.LogUtils;
 import net.minecraftforge.common.MinecraftForge;
@@ -10,18 +10,18 @@ import net.minecraftforge.fml.event.config.ModConfigEvent;
 import org.slf4j.Logger;
 
 /**
- * Biome Whitelist Mod - Restricts world generation to only whitelisted biomes.
+ * World Modifier Mod - Customize world generation settings.
  *
  * Design: Uses mixins to intercept biome selection during world generation
  * and redirect non-whitelisted biomes to a fallback biome from the whitelist.
  */
-@Mod(BiomeWhitelist.MODID)
-public class BiomeWhitelist {
-    public static final String MODID = "biomewhitelist";
+@Mod(WorldModifier.MODID)
+public class WorldModifier {
+    public static final String MODID = "worldmodifier";
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    public BiomeWhitelist() {
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, BiomeWhitelistConfig.SPEC);
+    public WorldModifier() {
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, WorldModifierConfig.SPEC);
         MinecraftForge.EVENT_BUS.register(this);
 
         // Register for config events on the mod event bus
@@ -29,20 +29,20 @@ public class BiomeWhitelist {
         modBus.addListener(this::onConfigLoad);
         modBus.addListener(this::onConfigReload);
 
-        LOGGER.info("[BiomeWhitelist]: Mod initialized. Configure biomes in biomewhitelist-common.toml");
+        LOGGER.info("[WorldModifier]: Mod initialized. Configure settings in worldmodifier-common.toml");
     }
 
     private void onConfigLoad(ModConfigEvent.Loading event) {
         if (event.getConfig().getModId().equals(MODID)) {
-            BiomeWhitelistConfig.rebuildCache();
-            LOGGER.info("[BiomeWhitelist.onConfigLoad]: Config loaded");
+            WorldModifierConfig.rebuildCache();
+            LOGGER.info("[WorldModifier.onConfigLoad]: Config loaded");
         }
     }
 
     private void onConfigReload(ModConfigEvent.Reloading event) {
         if (event.getConfig().getModId().equals(MODID)) {
-            BiomeWhitelistConfig.rebuildCache();
-            LOGGER.info("[BiomeWhitelist.onConfigReload]: Config reloaded");
+            WorldModifierConfig.rebuildCache();
+            LOGGER.info("[WorldModifier.onConfigReload]: Config reloaded");
         }
     }
 }

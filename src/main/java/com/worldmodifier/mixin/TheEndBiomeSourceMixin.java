@@ -1,7 +1,7 @@
-package com.biomewhitelist.mixin;
+package com.worldmodifier.mixin;
 
-import com.biomewhitelist.BiomeWhitelist;
-import com.biomewhitelist.BiomeWhitelistConfig;
+import com.worldmodifier.WorldModifier;
+import com.worldmodifier.WorldModifierConfig;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -28,13 +28,13 @@ import java.util.Set;
 public class TheEndBiomeSourceMixin {
 
     @Unique
-    private Map<ResourceLocation, Holder<Biome>> biomewhitelist$biomeHolderCache = new HashMap<>();
+    private Map<ResourceLocation, Holder<Biome>> worldmodifier$biomeHolderCache = new HashMap<>();
 
     @Inject(method = "getNoiseBiome", at = @At("RETURN"), cancellable = true)
-    private void biomewhitelist$filterBiome(int x, int y, int z,
+    private void worldmodifier$filterBiome(int x, int y, int z,
                                              net.minecraft.world.level.biome.Climate.Sampler sampler,
                                              CallbackInfoReturnable<Holder<Biome>> cir) {
-        if (!BiomeWhitelistConfig.isFilteringActive()) {
+        if (!WorldModifierConfig.isFilteringActive()) {
             return;
         }
 
@@ -49,25 +49,25 @@ public class TheEndBiomeSourceMixin {
         }
 
         ResourceLocation biomeId = keyOpt.get().location();
-        Set<ResourceLocation> whitelist = BiomeWhitelistConfig.getWhitelistedBiomes();
+        Set<ResourceLocation> whitelist = WorldModifierConfig.getWhitelistedBiomes();
 
         if (whitelist.contains(biomeId)) {
             return;
         }
 
-        Holder<Biome> replacement = biomewhitelist$getFallbackBiome();
+        Holder<Biome> replacement = worldmodifier$getFallbackBiome();
         if (replacement != null) {
             cir.setReturnValue(replacement);
         }
     }
 
     @Unique
-    private Holder<Biome> biomewhitelist$getFallbackBiome() {
-        ResourceLocation fallbackBiome = BiomeWhitelistConfig.getFirstWhitelistedBiome();
+    private Holder<Biome> worldmodifier$getFallbackBiome() {
+        ResourceLocation fallbackBiome = WorldModifierConfig.getFirstWhitelistedBiome();
 
         // Check cache first
-        if (biomewhitelist$biomeHolderCache.containsKey(fallbackBiome)) {
-            return biomewhitelist$biomeHolderCache.get(fallbackBiome);
+        if (worldmodifier$biomeHolderCache.containsKey(fallbackBiome)) {
+            return worldmodifier$biomeHolderCache.get(fallbackBiome);
         }
 
         // Search through the biome source's possible biomes to find the biome holder
@@ -75,12 +75,12 @@ public class TheEndBiomeSourceMixin {
         for (Holder<Biome> biomeHolder : self.possibleBiomes()) {
             Optional<ResourceKey<Biome>> keyOpt = biomeHolder.unwrapKey();
             if (keyOpt.isPresent() && keyOpt.get().location().equals(fallbackBiome)) {
-                biomewhitelist$biomeHolderCache.put(fallbackBiome, biomeHolder);
+                worldmodifier$biomeHolderCache.put(fallbackBiome, biomeHolder);
                 return biomeHolder;
             }
         }
 
-        BiomeWhitelist.LOGGER.warn("[TheEndBiomeSourceMixin.getFallbackBiome]: Biome {} not found in biome source's possible biomes", fallbackBiome);
+        WorldModifier.LOGGER.warn("[TheEndBiomeSourceMixin.getFallbackBiome]: Biome {} not found in biome source's possible biomes", fallbackBiome);
         return null;
     }
 }

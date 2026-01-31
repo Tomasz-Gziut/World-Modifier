@@ -4,27 +4,27 @@ license="MIT"
 issueTrackerURL=""
 
 [[mixins]]
-config="biomewhitelist.mixins.json"
+config="worldmodifier.mixins.json"
 
 [[mods]]
-modId="biomewhitelist"
+modId="worldmodifier"
 version="1.0.0"
-displayName="Biome Whitelist"
+displayName="World Modifier"
 description='''
-A mod that allows you to whitelist specific biomes for world generation.
-Only biomes in the whitelist will generate in new chunks.
+A mod that allows you to modify world generation settings.
+Control which biomes generate, adjust sea level, and customize your world.
 '''
-authors="BiomeWhitelist"
+authors="WorldModifier"
 displayURL=""
 
-[[dependencies.biomewhitelist]]
+[[dependencies.worldmodifier]]
 modId="forge"
 mandatory=true
 versionRange="[47,)"
 ordering="NONE"
 side="BOTH"
 
-[[dependencies.biomewhitelist]]
+[[dependencies.worldmodifier]]
 modId="minecraft"
 mandatory=true
 versionRange="[1.20.1,1.21)"
