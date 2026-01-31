@@ -15,6 +15,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -23,28 +25,21 @@ import java.util.Set;
  *
  * Design: Intercepts the getNoiseBiome method which is called during world generation
  * to determine which biome should be placed at a given location. If the selected biome
- * is not in the whitelist, it returns the fallback biome instead.
- *
- * Contract:
- * - Only modifies behavior when BiomeWhitelistConfig.isFilteringActive() returns true
- * - Non-whitelisted biomes are replaced with the configured fallback biome
- * - Thread-safe: uses only thread-safe config access
+ * is not in the whitelist, it returns a replacement biome from the whitelist based on
+ * the coordinates, ensuring consistent biome regions.
  */
 @Mixin(MultiNoiseBiomeSource.class)
 public class MultiNoiseBiomeSourceMixin {
 
     @Unique
-    private Holder<Biome> biomewhitelist$cachedFallback = null;
-
-    @Unique
-    private ResourceLocation biomewhitelist$cachedFallbackKey = null;
+    private Map<ResourceLocation, Holder<Biome>> biomewhitelist$biomeHolderCache = new HashMap<>();
 
     /**
      * Intercepts biome selection to filter based on whitelist.
      *
-     * @param x Climate x coordinate
-     * @param y Climate y coordinate
-     * @param z Climate z coordinate
+     * @param x Biome coordinate x (1/4 of block coordinate)
+     * @param y Biome coordinate y
+     * @param z Biome coordinate z (1/4 of block coordinate)
      * @param sampler Climate sampler for noise-based selection
      * @param cir Callback to potentially modify return value
      */
@@ -74,39 +69,37 @@ public class MultiNoiseBiomeSourceMixin {
             return;
         }
 
-        // Biome not in whitelist - return fallback
-        Holder<Biome> fallback = biomewhitelist$getFallbackBiome(originalBiome);
-        if (fallback != null) {
-            cir.setReturnValue(fallback);
+        // Biome not in whitelist - use fallback biome
+        Holder<Biome> replacement = biomewhitelist$getFallbackBiome();
+        if (replacement != null) {
+            cir.setReturnValue(replacement);
         }
     }
 
     /**
-     * Gets the fallback biome holder, with caching for performance.
-     * Searches through the biome source's possible biomes to find the fallback.
+     * Gets the fallback replacement biome holder.
+     * Uses caching to avoid repeated lookups.
      */
     @Unique
-    private Holder<Biome> biomewhitelist$getFallbackBiome(Holder<Biome> sampleBiome) {
-        ResourceLocation configuredFallback = BiomeWhitelistConfig.getFallbackBiome();
+    private Holder<Biome> biomewhitelist$getFallbackBiome() {
+        ResourceLocation fallbackBiome = BiomeWhitelistConfig.getFirstWhitelistedBiome();
 
-        // Check cache validity
-        if (biomewhitelist$cachedFallback != null &&
-            configuredFallback.equals(biomewhitelist$cachedFallbackKey)) {
-            return biomewhitelist$cachedFallback;
+        // Check cache first
+        if (biomewhitelist$biomeHolderCache.containsKey(fallbackBiome)) {
+            return biomewhitelist$biomeHolderCache.get(fallbackBiome);
         }
 
-        // Search through the biome source's possible biomes to find the fallback
+        // Search through the biome source's possible biomes to find the biome holder
         BiomeSource self = (BiomeSource) (Object) this;
         for (Holder<Biome> biomeHolder : self.possibleBiomes()) {
             Optional<ResourceKey<Biome>> keyOpt = biomeHolder.unwrapKey();
-            if (keyOpt.isPresent() && keyOpt.get().location().equals(configuredFallback)) {
-                biomewhitelist$cachedFallback = biomeHolder;
-                biomewhitelist$cachedFallbackKey = configuredFallback;
-                return biomewhitelist$cachedFallback;
+            if (keyOpt.isPresent() && keyOpt.get().location().equals(fallbackBiome)) {
+                biomewhitelist$biomeHolderCache.put(fallbackBiome, biomeHolder);
+                return biomeHolder;
             }
         }
 
-        BiomeWhitelist.LOGGER.warn("[MultiNoiseBiomeSourceMixin.getFallbackBiome]: Fallback biome {} not found in biome source's possible biomes", configuredFallback);
+        BiomeWhitelist.LOGGER.warn("[MultiNoiseBiomeSourceMixin.getFallbackBiome]: Biome {} not found in biome source's possible biomes", fallbackBiome);
         return null;
     }
 }

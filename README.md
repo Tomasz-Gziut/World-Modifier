@@ -5,10 +5,10 @@ A Minecraft Forge mod for 1.20.1 that restricts world generation to only specifi
 ## Features
 
 - **Biome Filtering**: Only allow specific biomes to generate in your world
-- **Fallback Biome**: Non-whitelisted biomes are replaced with a configurable fallback biome
+- **Smart Replacement**: Non-whitelisted biomes are replaced with biomes from your whitelist, maintaining natural-sized regions
+- **Ocean Flattening**: Ocean biomes generate as proper flat oceans without islands poking through
 - **Hot Reload**: Configuration changes take effect without restarting the game
 - **Mod Support**: Works with modded biomes using their full resource locations
-- **Beta Feature**: Optional flat ocean floor generation
 
 ## Requirements
 
@@ -39,14 +39,9 @@ List of biomes that are allowed to generate. Use full resource locations.
 
 **Important**: If this list is empty, all biomes are allowed (whitelist is disabled).
 
-#### `fallbackBiome` (default: `"minecraft:plains"`)
-The biome used when a non-whitelisted biome would normally generate. Must be a biome from your whitelist.
+When a non-whitelisted biome would generate, it is replaced with a biome from your whitelist. The replacement is consistent based on location, so biome regions maintain natural sizes.
 
-#### `forceFlatOcean` (Beta, default: `false`)
-When enabled, ocean biomes generate with a flat floor instead of underwater terrain features.
-
-#### `oceanFloorLevel` (Beta, default: `48`)
-Y-level for the ocean floor when `forceFlatOcean` is enabled. Sea level is at Y=63.
+**Ocean biomes** (any biome with "ocean" in the name) will generate as flat ocean floor with water, preventing islands from appearing.
 
 ## Example Configurations
 
@@ -55,7 +50,6 @@ Y-level for the ocean floor when `forceFlatOcean` is enabled. Sea level is at Y=
 [general]
 enabled = true
 whitelistedBiomes = ["minecraft:plains", "minecraft:river", "minecraft:ocean"]
-fallbackBiome = "minecraft:plains"
 ```
 
 ### Forest Survival
@@ -70,7 +64,6 @@ whitelistedBiomes = [
     "minecraft:river",
     "minecraft:ocean"
 ]
-fallbackBiome = "minecraft:forest"
 ```
 
 ### Desert Challenge
@@ -84,7 +77,6 @@ whitelistedBiomes = [
     "minecraft:river",
     "minecraft:warm_ocean"
 ]
-fallbackBiome = "minecraft:desert"
 ```
 
 ### Winter World
@@ -101,7 +93,6 @@ whitelistedBiomes = [
     "minecraft:frozen_ocean",
     "minecraft:deep_frozen_ocean"
 ]
-fallbackBiome = "minecraft:snowy_plains"
 ```
 
 ## Common Vanilla Biomes
@@ -124,7 +115,7 @@ Here's a reference list of common biome IDs:
 
 ## Tips
 
-1. **Always include rivers and oceans** in your whitelist if you want water bodies, otherwise all water areas will be replaced with your fallback biome.
+1. **Always include rivers and oceans** in your whitelist if you want water bodies, otherwise all water areas will be replaced with random biomes from your whitelist.
 
 2. **Test on a new world** - the whitelist only affects newly generated chunks.
 
@@ -135,7 +126,7 @@ Here's a reference list of common biome IDs:
 ## Troubleshooting
 
 **Q: My world looks completely flat/uniform**
-A: Check that your whitelist contains biomes that actually exist. Also ensure the fallback biome is in your whitelist.
+A: Check that your whitelist contains biomes that actually exist.
 
 **Q: Changes aren't taking effect**
 A: Changes only affect newly generated chunks. Travel to unexplored areas to see the new configuration.

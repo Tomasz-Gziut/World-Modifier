@@ -3,6 +3,7 @@ package com.biomewhitelist;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.common.ForgeConfigSpec;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -13,8 +14,8 @@ import java.util.Set;
  *
  * Contract:
  * - whitelistedBiomes: List of biome resource locations (e.g., "minecraft:plains")
- * - fallbackBiome: Biome to use when a non-whitelisted biome would generate
  * - enabled: Master toggle for the mod functionality
+ * - Non-whitelisted biomes are replaced with a random biome from the whitelist
  *
  * Invariant: If whitelist is empty and enabled=true, ALL biomes are allowed (no filtering).
  */
@@ -23,13 +24,11 @@ public class BiomeWhitelistConfig {
 
     public static final ForgeConfigSpec.BooleanValue ENABLED;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> WHITELISTED_BIOMES;
-    public static final ForgeConfigSpec.ConfigValue<String> FALLBACK_BIOME;
-    public static final ForgeConfigSpec.BooleanValue FORCE_FLAT_OCEAN;
-    public static final ForgeConfigSpec.IntValue OCEAN_FLOOR_LEVEL;
+    public static final ForgeConfigSpec.IntValue SEA_LEVEL;
 
     // Cached set for fast lookup - rebuilt when config reloads
     private static Set<ResourceLocation> whitelistCache = Collections.emptySet();
-    private static Set<ResourceLocation> oceanBiomesCache = Collections.emptySet();
+    private static List<ResourceLocation> whitelistList = Collections.emptyList();
 
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
@@ -62,57 +61,33 @@ public class BiomeWhitelistConfig {
                 )
                 .defineListAllowEmpty(
                         List.of("whitelistedBiomes"),
-                        () -> List.of("minecraft:plains"),
+                        () -> List.of(
+                                "minecraft:ocean",
+                                "minecraft:deep_ocean",
+                                "minecraft:warm_ocean",
+                                "minecraft:lukewarm_ocean",
+                                "minecraft:deep_lukewarm_ocean",
+                                "minecraft:cold_ocean",
+                                "minecraft:deep_cold_ocean",
+                                "minecraft:frozen_ocean",
+                                "minecraft:deep_frozen_ocean"
+                        ),
                         obj -> obj instanceof String s && ResourceLocation.tryParse(s) != null
                 );
 
-        FALLBACK_BIOME = builder
+        SEA_LEVEL = builder
                 .comment(
-                        "Fallback biome when a non-whitelisted biome would generate.",
-                        "Must be a biome from the whitelist. If invalid, uses first whitelisted biome."
+                        "Custom sea level for world generation.",
+                        "Default Minecraft sea level is 63.",
+                        "Higher values = more water, lower values = less water.",
+                        "Note: This affects where water generates, not terrain height.",
+                        "Range: 0-320"
                 )
-                .define("fallbackBiome", "minecraft:plains");
-
-        builder.pop();
-
-        builder.comment("Experimental Features (Beta)");
-        builder.push("beta");
-
-        FORCE_FLAT_OCEAN = builder
-                .comment(
-                        "[BETA] Force ocean biomes to generate as flat terrain.",
-                        "When enabled, ocean-type biomes will generate as flat ocean floor",
-                        "without islands, hills, or terrain features that would normally",
-                        "appear due to the underlying terrain noise.",
-                        "This affects: ocean, deep_ocean, warm_ocean, lukewarm_ocean,",
-                        "cold_ocean, frozen_ocean, and their deep variants."
-                )
-                .define("forceFlatOcean", false);
-
-        OCEAN_FLOOR_LEVEL = builder
-                .comment(
-                        "[BETA] Y-level for the ocean floor when forceFlatOcean is enabled.",
-                        "Default is 48, which creates a reasonable ocean depth.",
-                        "Sea level is at Y=63."
-                )
-                .defineInRange("oceanFloorLevel", 48, -64, 62);
+                .defineInRange("seaLevel", 100, 0, 320);
 
         builder.pop();
         SPEC = builder.build();
     }
-
-    // All vanilla ocean biome IDs
-    private static final Set<ResourceLocation> VANILLA_OCEAN_BIOMES = Set.of(
-            new ResourceLocation("minecraft", "ocean"),
-            new ResourceLocation("minecraft", "deep_ocean"),
-            new ResourceLocation("minecraft", "warm_ocean"),
-            new ResourceLocation("minecraft", "lukewarm_ocean"),
-            new ResourceLocation("minecraft", "deep_lukewarm_ocean"),
-            new ResourceLocation("minecraft", "cold_ocean"),
-            new ResourceLocation("minecraft", "deep_cold_ocean"),
-            new ResourceLocation("minecraft", "frozen_ocean"),
-            new ResourceLocation("minecraft", "deep_frozen_ocean")
-    );
 
     /**
      * Rebuilds the whitelist cache from config values.
@@ -120,23 +95,20 @@ public class BiomeWhitelistConfig {
      */
     public static void rebuildCache() {
         Set<ResourceLocation> newCache = new HashSet<>();
-        Set<ResourceLocation> newOceanCache = new HashSet<>();
+        List<ResourceLocation> newList = new ArrayList<>();
         for (String biome : WHITELISTED_BIOMES.get()) {
             ResourceLocation loc = ResourceLocation.tryParse(biome);
             if (loc != null) {
                 newCache.add(loc);
-                // Check if this is an ocean biome
-                if (VANILLA_OCEAN_BIOMES.contains(loc) || loc.getPath().contains("ocean")) {
-                    newOceanCache.add(loc);
-                }
+                newList.add(loc);
             } else {
                 BiomeWhitelist.LOGGER.warn("[BiomeWhitelistConfig.rebuildCache]: Invalid biome resource location: {}", biome);
             }
         }
         whitelistCache = Collections.unmodifiableSet(newCache);
-        oceanBiomesCache = Collections.unmodifiableSet(newOceanCache);
-        BiomeWhitelist.LOGGER.info("[BiomeWhitelistConfig.rebuildCache]: Whitelist contains {} biomes ({} ocean biomes)",
-                whitelistCache.size(), oceanBiomesCache.size());
+        whitelistList = Collections.unmodifiableList(newList);
+        BiomeWhitelist.LOGGER.info("[BiomeWhitelistConfig.rebuildCache]: Whitelist contains {} biomes, sea level: {}",
+                whitelistCache.size(), SEA_LEVEL.get());
     }
 
     /**
@@ -165,43 +137,22 @@ public class BiomeWhitelistConfig {
     }
 
     /**
-     * @return the configured fallback biome, or first whitelisted biome if invalid
+     * Gets the first biome from the whitelist as a fallback replacement.
+     * This is used when the original biome isn't in the whitelist.
+     *
+     * @return the first biome from the whitelist
      */
-    public static ResourceLocation getFallbackBiome() {
-        ResourceLocation fallback = ResourceLocation.tryParse(FALLBACK_BIOME.get());
-        if (fallback != null && whitelistCache.contains(fallback)) {
-            return fallback;
+    public static ResourceLocation getFirstWhitelistedBiome() {
+        if (whitelistList.isEmpty()) {
+            return new ResourceLocation("minecraft", "plains");
         }
-        // Return first whitelisted biome as fallback
-        return whitelistCache.isEmpty() ? new ResourceLocation("minecraft", "plains") : whitelistCache.iterator().next();
+        return whitelistList.get(0);
     }
 
     /**
-     * @return true if flat ocean mode is enabled
+     * @return the configured sea level
      */
-    public static boolean isForceFlatOceanEnabled() {
-        return FORCE_FLAT_OCEAN.get();
-    }
-
-    /**
-     * @return the configured ocean floor Y-level
-     */
-    public static int getOceanFloorLevel() {
-        return OCEAN_FLOOR_LEVEL.get();
-    }
-
-    /**
-     * @param biome the biome to check
-     * @return true if the biome is an ocean-type biome
-     */
-    public static boolean isOceanBiome(ResourceLocation biome) {
-        return oceanBiomesCache.contains(biome) || VANILLA_OCEAN_BIOMES.contains(biome);
-    }
-
-    /**
-     * @return unmodifiable set of ocean biome resource locations from the whitelist
-     */
-    public static Set<ResourceLocation> getOceanBiomes() {
-        return oceanBiomesCache;
+    public static int getSeaLevel() {
+        return SEA_LEVEL.get();
     }
 }

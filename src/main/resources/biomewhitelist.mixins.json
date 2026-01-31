@@ -7,7 +7,8 @@
   "mixins": [
     "MultiNoiseBiomeSourceMixin",
     "TheEndBiomeSourceMixin",
-    "NoiseBasedChunkGeneratorMixin"
+    "SeaLevelMixin",
+    "AquiferMixin"
   ],
   "client": [],
   "injectors": {

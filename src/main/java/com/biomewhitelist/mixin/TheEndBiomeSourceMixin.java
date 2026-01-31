@@ -14,6 +14,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -26,10 +28,7 @@ import java.util.Set;
 public class TheEndBiomeSourceMixin {
 
     @Unique
-    private Holder<Biome> biomewhitelist$cachedFallback = null;
-
-    @Unique
-    private ResourceLocation biomewhitelist$cachedFallbackKey = null;
+    private Map<ResourceLocation, Holder<Biome>> biomewhitelist$biomeHolderCache = new HashMap<>();
 
     @Inject(method = "getNoiseBiome", at = @At("RETURN"), cancellable = true)
     private void biomewhitelist$filterBiome(int x, int y, int z,
@@ -56,33 +55,32 @@ public class TheEndBiomeSourceMixin {
             return;
         }
 
-        Holder<Biome> fallback = biomewhitelist$getFallbackBiome(originalBiome);
-        if (fallback != null) {
-            cir.setReturnValue(fallback);
+        Holder<Biome> replacement = biomewhitelist$getFallbackBiome();
+        if (replacement != null) {
+            cir.setReturnValue(replacement);
         }
     }
 
     @Unique
-    private Holder<Biome> biomewhitelist$getFallbackBiome(Holder<Biome> sampleBiome) {
-        ResourceLocation configuredFallback = BiomeWhitelistConfig.getFallbackBiome();
+    private Holder<Biome> biomewhitelist$getFallbackBiome() {
+        ResourceLocation fallbackBiome = BiomeWhitelistConfig.getFirstWhitelistedBiome();
 
-        if (biomewhitelist$cachedFallback != null &&
-            configuredFallback.equals(biomewhitelist$cachedFallbackKey)) {
-            return biomewhitelist$cachedFallback;
+        // Check cache first
+        if (biomewhitelist$biomeHolderCache.containsKey(fallbackBiome)) {
+            return biomewhitelist$biomeHolderCache.get(fallbackBiome);
         }
 
-        // Search through the biome source's possible biomes to find the fallback
+        // Search through the biome source's possible biomes to find the biome holder
         BiomeSource self = (BiomeSource) (Object) this;
         for (Holder<Biome> biomeHolder : self.possibleBiomes()) {
             Optional<ResourceKey<Biome>> keyOpt = biomeHolder.unwrapKey();
-            if (keyOpt.isPresent() && keyOpt.get().location().equals(configuredFallback)) {
-                biomewhitelist$cachedFallback = biomeHolder;
-                biomewhitelist$cachedFallbackKey = configuredFallback;
-                return biomewhitelist$cachedFallback;
+            if (keyOpt.isPresent() && keyOpt.get().location().equals(fallbackBiome)) {
+                biomewhitelist$biomeHolderCache.put(fallbackBiome, biomeHolder);
+                return biomeHolder;
             }
         }
 
-        BiomeWhitelist.LOGGER.warn("[TheEndBiomeSourceMixin.getFallbackBiome]: Fallback biome {} not found in biome source's possible biomes", configuredFallback);
+        BiomeWhitelist.LOGGER.warn("[TheEndBiomeSourceMixin.getFallbackBiome]: Biome {} not found in biome source's possible biomes", fallbackBiome);
         return null;
     }
 }
