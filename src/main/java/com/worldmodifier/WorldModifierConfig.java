@@ -26,6 +26,7 @@ public class WorldModifierConfig {
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> WHITELISTED_BIOMES;
     public static final ForgeConfigSpec.IntValue SEA_LEVEL;
     public static final ForgeConfigSpec.IntValue BEDROCK_LEVEL;
+    public static final ForgeConfigSpec.IntValue MAX_HEIGHT;
 
     // Cached set for fast lookup - rebuilt when config reloads
     private static Set<ResourceLocation> whitelistCache = Collections.emptySet();
@@ -92,9 +93,20 @@ public class WorldModifierConfig {
                         "Default Minecraft bedrock level is -64.",
                         "Higher values = shallower world, lower values = deeper world.",
                         "Bedrock will generate at this Y level and below.",
-                        "Range: -64 to 320"
+                        "Note: Value is rounded down to nearest multiple of 16 (Minecraft requirement).",
+                        "Range: -2048 to 320"
                 )
-                .defineInRange("bedrockLevel", 0, -64, 320);
+                .defineInRange("bedrockLevel", -100, -2048, 320);
+
+        MAX_HEIGHT = builder
+                .comment(
+                        "Maximum Y level (top of the world / build limit).",
+                        "Default Minecraft max height is 512.",
+                        "Lower values = lower sky limit, higher values = taller world.",
+                        "Note: Value is rounded up to nearest multiple of 16 (Minecraft requirement).",
+                        "Range: -64 to 2048"
+                )
+                .defineInRange("maxHeight", 1000, -64, 2048);
 
         builder.pop();
         SPEC = builder.build();
@@ -119,8 +131,8 @@ public class WorldModifierConfig {
         whitelistCache = Collections.unmodifiableSet(newCache);
         whitelistList = Collections.unmodifiableList(newList);
 
-        WorldModifier.LOGGER.info("[WorldModifierConfig.rebuildCache]: Whitelist contains {} biomes, sea level: {}, bedrock level: {}",
-                whitelistCache.size(), SEA_LEVEL.get(), BEDROCK_LEVEL.get());
+        WorldModifier.LOGGER.info("[WorldModifierConfig.rebuildCache]: Whitelist contains {} biomes, sea level: {}, bedrock level: {}, max height: {}",
+                whitelistCache.size(), SEA_LEVEL.get(), BEDROCK_LEVEL.get(), MAX_HEIGHT.get());
     }
 
     /**
@@ -173,5 +185,12 @@ public class WorldModifierConfig {
      */
     public static int getBedrockLevel() {
         return BEDROCK_LEVEL.get();
+    }
+
+    /**
+     * @return the configured max height
+     */
+    public static int getMaxHeight() {
+        return MAX_HEIGHT.get();
     }
 }

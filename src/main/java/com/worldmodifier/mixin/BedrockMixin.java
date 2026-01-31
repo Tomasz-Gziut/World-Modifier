@@ -35,17 +35,13 @@ public class BedrockMixin {
                                                   ChunkAccess chunk,
                                                   GenerationStep.Carving carving,
                                                   CallbackInfo ci) {
-        if (!WorldModifierConfig.isFilteringActive()) {
-            return;
-        }
-
         // Only run after the AIR carving step (the last one)
         if (carving != GenerationStep.Carving.AIR) {
             return;
         }
 
         int bedrockLevel = WorldModifierConfig.getBedrockLevel();
-        int minY = (bedrockLevel / 16) * 16; // Round to 16
+        int minY = Math.floorDiv(bedrockLevel, 16) * 16; // Round down to 16
         int chunkX = chunk.getPos().getMinBlockX();
         int chunkZ = chunk.getPos().getMinBlockZ();
 

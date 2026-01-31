@@ -19,38 +19,28 @@ public class DimensionTypeMixin {
      */
     @Inject(method = "minY", at = @At("HEAD"), cancellable = true)
     private void worldmodifier$overrideMinY(CallbackInfoReturnable<Integer> cir) {
-        if (!WorldModifierConfig.isFilteringActive()) {
-            return;
-        }
-
         int bedrockLevel = WorldModifierConfig.getBedrockLevel();
-        // Round to nearest 16 (Minecraft requires min_y to be divisible by 16)
-        int newMinY = (bedrockLevel / 16) * 16;
-
-        // Only modify if the new min_y is higher than default -64
-        if (newMinY > -64) {
-            cir.setReturnValue(newMinY);
-        }
+        // Round down to nearest 16 (Minecraft requires min_y to be divisible by 16)
+        int newMinY = Math.floorDiv(bedrockLevel, 16) * 16;
+        cir.setReturnValue(newMinY);
     }
 
     /**
      * Intercepts height() to return adjusted height.
+     * Height = maxY - minY (must be divisible by 16)
      */
     @Inject(method = "height", at = @At("HEAD"), cancellable = true)
     private void worldmodifier$overrideHeight(CallbackInfoReturnable<Integer> cir) {
-        if (!WorldModifierConfig.isFilteringActive()) {
-            return;
-        }
-
         int bedrockLevel = WorldModifierConfig.getBedrockLevel();
-        int newMinY = (bedrockLevel / 16) * 16;
+        int maxHeight = WorldModifierConfig.getMaxHeight();
 
-        // Only modify if the new min_y is higher than default -64
-        if (newMinY > -64) {
-            // Default height is 384 (from -64 to 320)
-            // New height = 320 - newMinY
-            int newHeight = 320 - newMinY;
-            cir.setReturnValue(newHeight);
-        }
+        // Round minY down to nearest 16 (Minecraft requires divisible by 16)
+        int newMinY = Math.floorDiv(bedrockLevel, 16) * 16;
+        // Round maxHeight up to nearest 16 (Minecraft requires divisible by 16)
+        int roundedMaxHeight = ((maxHeight + 15) / 16) * 16;
+
+        // Height = maxY - minY
+        int newHeight = roundedMaxHeight - newMinY;
+        cir.setReturnValue(newHeight);
     }
 }
